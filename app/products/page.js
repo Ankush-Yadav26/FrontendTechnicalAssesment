@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ProductCard from '@/components/products/ProductCard';
 import { useProductStore } from '@/store/productStore';
@@ -49,20 +49,27 @@ export default function ProductsPage() {
   } = useProductStore();
 
   const [localSearch, setLocalSearch] = useState(searchQuery || '');
+  const isInitialMount = useRef(true);
 
   // Calculate current zero-indexed page
   const page = useMemo(() => {
     return limit > 0 ? Math.floor(skip / limit) : 0;
   }, [skip, limit]);
 
-  // Initial load
+  // Initial load once on mount
   useEffect(() => {
     fetchCategories();
-    fetchProducts({ limit, skip, query: searchQuery, category: selectedCategory });
-  }, [fetchCategories, fetchProducts, limit, skip, searchQuery, selectedCategory]);
+    fetchProducts({ limit: 12, skip: 0, query: searchQuery, category: selectedCategory });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Debounced search
+  // Debounced search: only fires when local search value changes
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     const handler = setTimeout(() => {
       if (localSearch !== searchQuery) {
         setSearchQuery(localSearch);
@@ -177,7 +184,7 @@ export default function ProductsPage() {
                   ),
                   endAdornment: localSearch && (
                     <InputAdornment position="end">
-                      <IconButton size="small" onClick={handleClearSearch}>
+                      <IconButton size="small" onClick={handleClearSearch} aria-label="clear search">
                         <ClearIcon fontSize="small" />
                       </IconButton>
                     </InputAdornment>
@@ -235,7 +242,7 @@ export default function ProductsPage() {
         {/* Product Grid */}
         {isLoading ? (
           <Grid container spacing={2.5}>
-            {Array.from(new Array(limit || 10)).map((_, idx) => (
+            {Array.from(new Array(limit || 8)).map((_, idx) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={`skeleton-card-${idx}`}>
                 <Card sx={{ height: 360, p: 2 }}>
                   <Skeleton variant="rectangular" height={160} sx={{ borderRadius: 2, mb: 1.5 }} />
@@ -293,7 +300,7 @@ export default function ProductsPage() {
           <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
             <Card sx={{ width: '100%' }}>
               <TablePagination
-                rowsPerPageOptions={[8, 10, 16, 24, 48]}
+                rowsPerPageOptions={[8, 12, 16, 24, 48]}
                 component="div"
                 count={total}
                 rowsPerPage={limit}
@@ -309,4 +316,3 @@ export default function ProductsPage() {
     </DashboardLayout>
   );
 }
-

@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useUserStore } from '@/store/userStore';
 import {
   Box,
   Card,
-  CardContent,
   Typography,
   Button,
   Grid,
@@ -17,11 +16,6 @@ import {
   Divider,
   Skeleton,
   Alert,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
@@ -30,13 +24,11 @@ import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
 import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
-import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import CurrencyBitcoinIcon from '@mui/icons-material/CurrencyBitcoin';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 
 export default function UserDetailPage() {
   const { id } = useParams();
-  const router = useRouter();
   const {
     selectedUser,
     isLoadingDetail,
@@ -362,4 +354,3 @@ export default function UserDetailPage() {
     </DashboardLayout>
   );
 }
-

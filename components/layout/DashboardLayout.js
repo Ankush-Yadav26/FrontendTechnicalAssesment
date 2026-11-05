@@ -32,7 +32,6 @@ import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SchoolIcon from '@mui/icons-material/School';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 
 const DRAWER_WIDTH = 260;
 
@@ -227,6 +226,7 @@ export default function DashboardLayout({ children }) {
                 edge="start"
                 onClick={handleDrawerToggle}
                 sx={{ mr: 1, display: { md: 'none' } }}
+                aria-label="open navigation menu"
               >
                 <MenuIcon />
               </IconButton>
@@ -378,4 +378,3 @@ export default function DashboardLayout({ children }) {
     </AuthGuard>
   );
 }
-

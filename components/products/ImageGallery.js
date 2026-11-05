@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, IconButton, Paper, Typography } from '@mui/material';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
@@ -8,7 +8,17 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 export default function ImageGallery({ images = [], title = 'Product' }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const validImages = images && images.length > 0 ? images : ['https://via.placeholder.com/600x400?text=No+Image'];
+  const validImages = Array.isArray(images) && images.length > 0
+    ? images
+    : ['https://via.placeholder.com/600x400?text=No+Image'];
+
+  // Reset index when the product changes
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [images]);
+
+  // Ensure selectedIndex is always valid
+  const safeIndex = selectedIndex < validImages.length ? selectedIndex : 0;
 
   const handlePrev = () => {
     setSelectedIndex((prev) => (prev === 0 ? validImages.length - 1 : prev - 1));
@@ -38,8 +48,8 @@ export default function ImageGallery({ images = [], title = 'Product' }) {
       >
         <Box
           component="img"
-          src={validImages[selectedIndex]}
-          alt={`${title} - image ${selectedIndex + 1}`}
+          src={validImages[safeIndex]}
+          alt={`${title} - image ${safeIndex + 1}`}
           sx={{
             position: 'absolute',
             top: 0,
@@ -105,7 +115,7 @@ export default function ImageGallery({ images = [], title = 'Product' }) {
                 fontSize: 11,
               }}
             >
-              {selectedIndex + 1} / {validImages.length}
+              {safeIndex + 1} / {validImages.length}
             </Typography>
           </>
         )}
@@ -135,13 +145,13 @@ export default function ImageGallery({ images = [], title = 'Product' }) {
                 borderRadius: 2,
                 overflow: 'hidden',
                 border: '2px solid',
-                borderColor: selectedIndex === idx ? 'primary.main' : 'divider',
+                borderColor: safeIndex === idx ? 'primary.main' : 'divider',
                 cursor: 'pointer',
                 bgcolor: '#f8fafc',
                 p: 0.5,
                 transition: 'border-color 0.15s ease',
                 '&:hover': {
-                  borderColor: selectedIndex === idx ? 'primary.main' : 'text.secondary',
+                  borderColor: safeIndex === idx ? 'primary.main' : 'text.secondary',
                 },
               }}
             >
@@ -158,4 +168,3 @@ export default function ImageGallery({ images = [], title = 'Product' }) {
     </Box>
   );
 }
-

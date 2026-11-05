@@ -10,6 +10,8 @@
  * HOW ASYNCHRONOUS ACTIONS WORK:
  * - Actions like `fetchProducts` and `fetchCategories` trigger state updates before and after network operations.
  * - Loading and error states are tracked to inform the UI (e.g. Skeletons, Error Alerts, Empty state notices).
+ * - A monotonically increasing `lastRequestId` is maintained to prevent race conditions:
+ *   if an older request resolves after a newer one (e.g. fast typing in search), the stale payload is safely discarded.
  * 
  * WHY CACHING IS USEFUL & CACHING STRATEGY IMPLEMENTED:
  * - Prevents repetitive network requests when the user toggles between product pages, searches, or categories.
@@ -44,6 +46,7 @@ export const useProductStore = create((set, get) => ({
   isLoadingDetail: false,
   isLoadingCategories: false,
   error: null,
+  lastRequestId: 0,
 
   // In-memory cache for product list queries
   cache: {},
@@ -81,18 +84,24 @@ export const useProductStore = create((set, get) => ({
   },
 
   /**
-   * Fetch products with pagination, search, and category filter
+   * Fetch products with pagination, search, and category filter.
+   * Protects against race conditions via request ID verification.
    */
   fetchProducts: async ({
-    limit = 10,
-    skip = 0,
-    query = '',
-    category = 'all',
+    limit,
+    skip,
+    query,
+    category,
     forceRefresh = false,
   } = {}) => {
-    const normalizedQuery = (query || '').trim().toLowerCase();
-    const normalizedCat = category || 'all';
-    const cacheKey = `products_${limit}_${skip}_${normalizedQuery}_${normalizedCat}`;
+    const currentLimit = limit ?? get().limit;
+    const currentSkip = skip ?? get().skip;
+    const currentQuery = query !== undefined ? query : get().searchQuery;
+    const currentCategory = category !== undefined ? category : get().selectedCategory;
+
+    const normalizedQuery = (currentQuery || '').trim().toLowerCase();
+    const normalizedCat = currentCategory || 'all';
+    const cacheKey = `products_${currentLimit}_${currentSkip}_${normalizedQuery}_${normalizedCat}`;
     const { cache } = get();
 
     // Cache hit verification
@@ -101,32 +110,39 @@ export const useProductStore = create((set, get) => ({
       set({
         products: cached.products,
         total: cached.total,
-        limit,
-        skip,
-        searchQuery: query,
-        selectedCategory: category,
+        limit: currentLimit,
+        skip: currentSkip,
+        searchQuery: currentQuery,
+        selectedCategory: currentCategory,
         isLoading: false,
         error: null,
       });
       return;
     }
 
+    const requestId = (get().lastRequestId || 0) + 1;
     set({
+      lastRequestId: requestId,
       isLoading: true,
       error: null,
-      limit,
-      skip,
-      searchQuery: query,
-      selectedCategory: category,
+      limit: currentLimit,
+      skip: currentSkip,
+      searchQuery: currentQuery,
+      selectedCategory: currentCategory,
     });
 
     try {
       const data = await fetchProductsList({
-        limit,
-        skip,
+        limit: currentLimit,
+        skip: currentSkip,
         query: normalizedQuery,
         category: normalizedCat,
       });
+
+      // Discard stale response if a newer request superseded this one
+      if (get().lastRequestId !== requestId) {
+        return;
+      }
 
       const products = data.products || [];
       const total = data.total || 0;
@@ -138,10 +154,12 @@ export const useProductStore = create((set, get) => ({
         error: null,
         cache: {
           ...state.cache,
-          [cacheKey]: { products, total, limit, skip },
+          [cacheKey]: { products, total, limit: currentLimit, skip: currentSkip },
         },
       }));
     } catch (err) {
+      if (get().lastRequestId !== requestId) return;
+
       set({
         isLoading: false,
         error: err?.message || 'Failed to fetch products. Please try again.',
@@ -234,4 +252,3 @@ export const useProductStore = create((set, get) => ({
   clearError: () => set({ error: null }),
   clearSelectedProduct: () => set({ selectedProduct: null }),
 }));
-

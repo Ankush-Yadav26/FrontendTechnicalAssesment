@@ -10,6 +10,8 @@
  * HOW ASYNCHRONOUS ACTIONS WORK:
  * - Async functions inside the store call the API services using native `fetch`.
  * - While the network request is pending, `isLoading` is set to true.
+ * - A monotonically increasing `lastRequestId` is maintained to prevent race conditions:
+ *   if an older request finishes after a newer one, the stale response is automatically discarded.
  * - Upon resolution, the store writes the fetched data to state and updates the cache.
  * 
  * WHY CACHING IS USEFUL & CACHING STRATEGY IMPLEMENTED:
@@ -38,6 +40,7 @@ export const useUserStore = create((set, get) => ({
   isLoading: false,
   isLoadingDetail: false,
   error: null,
+  lastRequestId: 0,
 
   // Client-side cache: { [cacheKey]: { users, total, limit, skip } }
   cache: {},
@@ -47,10 +50,15 @@ export const useUserStore = create((set, get) => ({
   /**
    * Fetch users with pagination and search filtering.
    * Checks the in-memory cache first to avoid unnecessary network calls.
+   * Employs request ID tracking to prevent race conditions.
    */
-  fetchUsers: async ({ limit = 10, skip = 0, query = '', forceRefresh = false } = {}) => {
-    const normalizedQuery = (query || '').trim().toLowerCase();
-    const cacheKey = `users_${limit}_${skip}_${normalizedQuery}`;
+  fetchUsers: async ({ limit, skip, query, forceRefresh = false } = {}) => {
+    const currentLimit = limit ?? get().limit;
+    const currentSkip = skip ?? get().skip;
+    const currentQuery = query !== undefined ? query : get().searchQuery;
+
+    const normalizedQuery = (currentQuery || '').trim().toLowerCase();
+    const cacheKey = `users_${currentLimit}_${currentSkip}_${normalizedQuery}`;
     const { cache } = get();
 
     // Check cache hit if forceRefresh is not requested
@@ -59,23 +67,41 @@ export const useUserStore = create((set, get) => ({
       set({
         users: cached.users,
         total: cached.total,
-        limit,
-        skip,
-        searchQuery: query,
+        limit: currentLimit,
+        skip: currentSkip,
+        searchQuery: currentQuery,
         isLoading: false,
         error: null,
       });
       return;
     }
 
-    set({ isLoading: true, error: null, limit, skip, searchQuery: query });
+    const requestId = (get().lastRequestId || 0) + 1;
+    set({
+      lastRequestId: requestId,
+      isLoading: true,
+      error: null,
+      limit: currentLimit,
+      skip: currentSkip,
+      searchQuery: currentQuery,
+    });
 
     try {
-      const data = await fetchUsersList({ limit, skip, query: normalizedQuery });
+      const data = await fetchUsersList({
+        limit: currentLimit,
+        skip: currentSkip,
+        query: normalizedQuery,
+      });
+
+      // Discard response if a newer request was dispatched while this was pending
+      if (get().lastRequestId !== requestId) {
+        return;
+      }
+
       const users = data.users || [];
       const total = data.total || 0;
 
-      // Update cache dictionary
+      // Update state and cache
       set((state) => ({
         users,
         total,
@@ -83,10 +109,12 @@ export const useUserStore = create((set, get) => ({
         error: null,
         cache: {
           ...state.cache,
-          [cacheKey]: { users, total, limit, skip },
+          [cacheKey]: { users, total, limit: currentLimit, skip: currentSkip },
         },
       }));
     } catch (err) {
+      if (get().lastRequestId !== requestId) return;
+
       set({
         isLoading: false,
         error: err?.message || 'Failed to fetch users. Please try again.',
@@ -162,4 +190,3 @@ export const useUserStore = create((set, get) => ({
   clearError: () => set({ error: null }),
   clearSelectedUser: () => set({ selectedUser: null }),
 }));
-

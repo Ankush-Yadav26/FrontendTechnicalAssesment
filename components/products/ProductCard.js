@@ -26,6 +26,12 @@ function ProductCard({ product }) {
 
   const imageSrc = product.thumbnail || product.images?.[0] || 'https://via.placeholder.com/300?text=No+Image';
 
+  // Guard against division by zero in discount computation
+  const originalPrice =
+    product.discountPercentage > 0 && product.discountPercentage < 100
+      ? (product.price / (1 - product.discountPercentage / 100)).toFixed(2)
+      : null;
+
   return (
     <Card
       onClick={handleCardClick}
@@ -165,12 +171,12 @@ function ProductCard({ product }) {
             <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', lineHeight: 1 }}>
               ${product.price}
             </Typography>
-            {product.discountPercentage > 0 && (
+            {originalPrice && (
               <Typography
                 variant="caption"
                 sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
               >
-                ${(product.price / (1 - product.discountPercentage / 100)).toFixed(2)}
+                ${originalPrice}
               </Typography>
             )}
           </Box>
@@ -194,4 +200,3 @@ function ProductCard({ product }) {
 }
 
 export default React.memo(ProductCard);
-

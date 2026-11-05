@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ImageGallery from '@/components/products/ImageGallery';
@@ -9,7 +9,6 @@ import { useProductStore } from '@/store/productStore';
 import {
   Box,
   Card,
-  CardContent,
   Typography,
   Button,
   Grid,
@@ -31,11 +30,9 @@ import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
 import AssignmentReturnOutlinedIcon from '@mui/icons-material/AssignmentReturnOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import StarIcon from '@mui/icons-material/Star';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
-  const router = useRouter();
   const {
     selectedProduct,
     isLoadingDetail,
@@ -56,7 +53,7 @@ export default function ProductDetailPage() {
   const p = selectedProduct;
 
   const originalPrice =
-    p?.price && p?.discountPercentage
+    p?.price && p?.discountPercentage > 0 && p?.discountPercentage < 100
       ? (p.price / (1 - p.discountPercentage / 100)).toFixed(2)
       : null;
 
@@ -398,4 +395,3 @@ export default function ProductDetailPage() {
     </DashboardLayout>
   );
 }
-

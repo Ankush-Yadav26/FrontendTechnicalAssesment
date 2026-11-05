@@ -4,22 +4,36 @@
  */
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dummyjson.com';
+const DEFAULT_TIMEOUT_MS = 15000;
 
 /**
- * Generic helper for HTTP requests with error handling
+ * Generic helper for HTTP requests with error handling, timeout, and auth injection
  */
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
+  
+  // Create AbortController for network timeout handling
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
   };
 
+  // If token is explicitly passed, attach Authorization header
+  if (options.token) {
+    headers['Authorization'] = `Bearer ${options.token}`;
+  }
+
   try {
     const response = await fetch(url, {
       ...options,
       headers,
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     const data = await response.json().catch(() => ({}));
 
@@ -33,7 +47,14 @@ async function request(endpoint, options = {}) {
 
     return data;
   } catch (error) {
-    // Standardize error propagation
+    clearTimeout(timeoutId);
+
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error('Network request timed out. Please check your connection.');
+      timeoutError.status = 408;
+      throw timeoutError;
+    }
+
     if (!error.status) {
       error.status = 500;
     }
@@ -97,4 +118,3 @@ export async function fetchProductCategories() {
 export async function fetchProductById(id) {
   return request(`/products/${id}`);
 }
-

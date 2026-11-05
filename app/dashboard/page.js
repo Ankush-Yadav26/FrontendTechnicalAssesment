@@ -30,7 +30,6 @@ import Inventory2Icon from '@mui/icons-material/Inventory2';
 import CategoryIcon from '@mui/icons-material/Category';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import StarIcon from '@mui/icons-material/Star';
 
 export default function DashboardPage() {
@@ -108,11 +107,11 @@ export default function DashboardPage() {
                     <PeopleAltIcon />
                   </Avatar>
                 </Box>
-                {usersLoading && !totalUsers ? (
+                {usersLoading && totalUsers === 0 ? (
                   <Skeleton variant="text" width={80} height={48} />
                 ) : (
                   <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary' }}>
-                    {totalUsers || '208'}
+                    {totalUsers}
                   </Typography>
                 )}
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
@@ -134,11 +133,11 @@ export default function DashboardPage() {
                     <Inventory2Icon />
                   </Avatar>
                 </Box>
-                {productsLoading && !totalProducts ? (
+                {productsLoading && totalProducts === 0 ? (
                   <Skeleton variant="text" width={80} height={48} />
                 ) : (
                   <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary' }}>
-                    {totalProducts || '194'}
+                    {totalProducts}
                   </Typography>
                 )}
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
@@ -161,7 +160,7 @@ export default function DashboardPage() {
                   </Avatar>
                 </Box>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary' }}>
-                  {categories.length || '24'}
+                  {categories.length}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                   Diverse product classifications
@@ -362,4 +361,3 @@ export default function DashboardPage() {
     </DashboardLayout>
   );
 }
-

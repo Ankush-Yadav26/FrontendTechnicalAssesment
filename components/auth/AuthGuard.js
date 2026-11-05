@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { Box, CircularProgress, Typography } from '@mui/material';
@@ -8,15 +8,24 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 export default function AuthGuard({ children }) {
   const router = useRouter();
   const { isAuthenticated, isHydrated } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (isHydrated && !isAuthenticated) {
+    setMounted(true);
+    // If Zustand storage already completed before mount
+    if (!useAuthStore.getState().isHydrated) {
+      useAuthStore.setState({ isHydrated: true });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mounted && isHydrated && !isAuthenticated) {
       router.replace('/login');
     }
-  }, [isHydrated, isAuthenticated, router]);
+  }, [mounted, isHydrated, isAuthenticated, router]);
 
-  // While hydration is resolving or unauthenticated, show a clean loader
-  if (!isHydrated || !isAuthenticated) {
+  // While hydration is resolving or user is unauthenticated, render loader
+  if (!mounted || !isHydrated || !isAuthenticated) {
     return (
       <Box
         sx={{
@@ -39,4 +48,3 @@ export default function AuthGuard({ children }) {
 
   return <>{children}</>;
 }
-

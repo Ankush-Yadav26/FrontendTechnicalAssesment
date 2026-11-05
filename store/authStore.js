@@ -17,7 +17,7 @@ import { loginUser } from '@/services/api';
 
 export const useAuthStore = create(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       token: null,
       isAuthenticated: false,
@@ -90,12 +90,10 @@ export const useAuthStore = create(
         setItem: () => {},
         removeItem: () => {},
       })),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.setHydrated(true);
-        }
+      onRehydrateStorage: () => () => {
+        // Hydration finished (guarantee flag is flipped to avoid hanging screens)
+        useAuthStore.setState({ isHydrated: true });
       },
     }
   )
 );
-

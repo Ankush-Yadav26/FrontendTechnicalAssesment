@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import UserTableRow from '@/components/users/UserTableRow';
 import { useUserStore } from '@/store/userStore';
@@ -46,19 +46,26 @@ export default function UsersPage() {
   } = useUserStore();
 
   const [localSearch, setLocalSearch] = useState(searchQuery || '');
+  const isInitialMount = useRef(true);
 
   // Calculate zero-indexed page number for MUI TablePagination: page = skip / limit
   const page = useMemo(() => {
     return limit > 0 ? Math.floor(skip / limit) : 0;
   }, [skip, limit]);
 
-  // Initial fetch on mount
+  // Initial fetch on mount with default 10 per page
   useEffect(() => {
-    fetchUsers({ limit, skip, query: searchQuery });
-  }, [fetchUsers, limit, skip, searchQuery]);
+    fetchUsers({ limit: 10, skip: 0, query: searchQuery });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Debounced search handler using useCallback
+  // Debounced search handler: only fires when user edits local search input
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     const handler = setTimeout(() => {
       if (localSearch !== searchQuery) {
         setSearchQuery(localSearch);
@@ -150,7 +157,7 @@ export default function UsersPage() {
               ),
               endAdornment: localSearch && (
                 <InputAdornment position="end">
-                  <IconButton size="small" onClick={handleClearSearch}>
+                  <IconButton size="small" onClick={handleClearSearch} aria-label="clear search">
                     <ClearIcon fontSize="small" />
                   </IconButton>
                 </InputAdornment>
@@ -273,4 +280,3 @@ export default function UsersPage() {
     </DashboardLayout>
   );
 }
-

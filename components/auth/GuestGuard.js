@@ -2,28 +2,33 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
 import { Box, CircularProgress } from '@mui/material';
 
 export default function GuestGuard({ children }) {
   const router = useRouter();
-  const { isAuthenticated, isHydrated } = useAuthStore();
-  const [mounted, setMounted] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
-    if (!useAuthStore.getState().isHydrated) {
-      useAuthStore.setState({ isHydrated: true });
+    // Check if user has an active stored session
+    const authStorage = typeof window !== 'undefined' ? localStorage.getItem('auth-storage') : null;
+    let hasSession = false;
+    try {
+      if (authStorage) {
+        const parsed = JSON.parse(authStorage);
+        hasSession = Boolean(parsed?.state?.token && parsed?.state?.isAuthenticated);
+      }
+    } catch (e) {
+      hasSession = false;
     }
-  }, []);
 
-  useEffect(() => {
-    if (mounted && isHydrated && isAuthenticated) {
+    if (hasSession) {
       router.replace('/dashboard');
+    } else {
+      setIsChecking(false);
     }
-  }, [mounted, isHydrated, isAuthenticated, router]);
+  }, [router]);
 
-  if (!mounted || !isHydrated || isAuthenticated) {
+  if (isChecking) {
     return (
       <Box
         sx={{
@@ -31,7 +36,7 @@ export default function GuestGuard({ children }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: 'background.default',
+          bgcolor: 'background.default',
         }}
       >
         <CircularProgress size={36} />

@@ -7,25 +7,30 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 
 export default function AuthGuard({ children }) {
   const router = useRouter();
-  const { isAuthenticated, isHydrated } = useAuthStore();
-  const [mounted, setMounted] = useState(false);
+  const { isAuthenticated, token } = useAuthStore();
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    // If Zustand storage already completed before mount
-    if (!useAuthStore.getState().isHydrated) {
-      useAuthStore.setState({ isHydrated: true });
+    // Check both Zustand in-memory state and localStorage
+    const authStorage = typeof window !== 'undefined' ? localStorage.getItem('auth-storage') : null;
+    let hasSession = false;
+    try {
+      if (authStorage) {
+        const parsed = JSON.parse(authStorage);
+        hasSession = Boolean(parsed?.state?.token && parsed?.state?.isAuthenticated);
+      }
+    } catch (e) {
+      hasSession = false;
     }
-  }, []);
 
-  useEffect(() => {
-    if (mounted && isHydrated && !isAuthenticated) {
+    if (hasSession || (token && isAuthenticated)) {
+      setAuthorized(true);
+    } else {
       router.replace('/login');
     }
-  }, [mounted, isHydrated, isAuthenticated, router]);
+  }, [router, token, isAuthenticated]);
 
-  // While hydration is resolving or user is unauthenticated, render loader
-  if (!mounted || !isHydrated || !isAuthenticated) {
+  if (!authorized) {
     return (
       <Box
         sx={{
@@ -35,7 +40,7 @@ export default function AuthGuard({ children }) {
           alignItems: 'center',
           justifyContent: 'center',
           gap: 2,
-          backgroundColor: 'background.default',
+          bgcolor: 'background.default',
         }}
       >
         <CircularProgress size={40} thickness={4} color="primary" />

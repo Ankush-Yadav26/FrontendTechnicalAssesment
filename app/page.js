@@ -2,22 +2,30 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
 import { Box, CircularProgress } from '@mui/material';
 
 export default function RootPage() {
   const router = useRouter();
-  const { isAuthenticated, isHydrated } = useAuthStore();
 
   useEffect(() => {
-    if (isHydrated) {
-      if (isAuthenticated) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/login');
+    // Immediately inspect localStorage for existing session
+    const authStorage = typeof window !== 'undefined' ? localStorage.getItem('auth-storage') : null;
+    let hasToken = false;
+    try {
+      if (authStorage) {
+        const parsed = JSON.parse(authStorage);
+        hasToken = Boolean(parsed?.state?.token && parsed?.state?.isAuthenticated);
       }
+    } catch (e) {
+      hasToken = false;
     }
-  }, [isAuthenticated, isHydrated, router]);
+
+    if (hasToken) {
+      router.replace('/dashboard');
+    } else {
+      router.replace('/login');
+    }
+  }, [router]);
 
   return (
     <Box
@@ -26,10 +34,10 @@ export default function RootPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        bgcolor: 'background.default',
       }}
     >
       <CircularProgress />
     </Box>
   );
 }
-

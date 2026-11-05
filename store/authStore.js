@@ -23,7 +23,7 @@ export const useAuthStore = create(
       isAuthenticated: false,
       isLoading: false,
       error: null,
-      isHydrated: false,
+      isHydrated: true,
 
       /**
        * Asynchronous Login Action:
@@ -71,6 +71,13 @@ export const useAuthStore = create(
        * Clears authenticated session and tokens from both memory and persisted localStorage.
        */
       logout: () => {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('auth-storage');
+          } catch (e) {
+            // Ignore storage removal errors
+          }
+        }
         set({
           user: null,
           token: null,
@@ -90,10 +97,6 @@ export const useAuthStore = create(
         setItem: () => {},
         removeItem: () => {},
       })),
-      onRehydrateStorage: () => () => {
-        // Hydration finished (guarantee flag is flipped to avoid hanging screens)
-        useAuthStore.setState({ isHydrated: true });
-      },
     }
   )
 );
